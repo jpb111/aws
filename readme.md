@@ -49,7 +49,7 @@ Down the the private key, change permission
 
 ````bash
 
-chmod 600 <keyName>
+chmod 400 <keyName>
 
 ```bash
 
