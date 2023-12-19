@@ -14,6 +14,12 @@ aws iam list-users --profile <your_profile_name>
 
 ```
 
+## SSH EC2 Public
+
+ssh-add -K <MyKeyPair>
+ssh -A ec2-user@<IpAddressPublicEC2> Public EC2
+ssh ec2-user@<IpAddressPrivateEC2> Private EC2
+
 ### I am Roles for AWS Services
 
 ### Basic code to start and EC2 apache server
@@ -121,7 +127,7 @@ EC2 instance store is a high performance drive.
 
 ### Amazon EFS - Elastic File system
 
-1. Mananged NFS file system, works with EC2 instance in multi availability zones
+1. Managed NFS file system, works with EC2 instance in multi availability zones
 2. Higher cost compated to `ebs `
 
 ### Load Balancer
@@ -133,6 +139,8 @@ EC2 instance store is a high performance drive.
 #### Application Load Balancer
 
 Choose an Application Load Balancer when you need a flexible feature set for your applications with HTTP and HTTPS traffic. Operating at the request level, Application Load Balancers provide advanced routing and visibility features targeted at application architectures, including microservices and container.
+
+NB: To prevent the EC2 instance being accessed outside load balancer, change the instance inbound security group to that of the load balancer security group.
 
 #### Network Load Balancer
 
@@ -154,9 +162,7 @@ Two types of cookies
 
 ### Enable cookies
 
-DO to target grouo
-
-Select the target group / Action / edit target group atrriutes
+Select the target group / Action / edit target group attributes
 
 ## Cross -Zone Load Balancing
 
@@ -183,3 +189,56 @@ The load balancer an X.509 certificate (SSL/TLS cserver certificate)
 ## SSL - Server Name Indication (SNI)
 
 SNI solves problem of loading multiple ssl certificates onto one web server ( to server multiple websites).
+
+## Route 53 Record Types
+
+1. A - maps a hostname to ipv4
+2. AAAA - maps a hostname to ipv6
+3. CNAME - maps a hostname to another hostname
+   1. the target is a domain name which must have an A or AAAA record.
+4. Name Server for the hosted ZOne
+
+## Create a record.
+
+1. Route53 > Hosted zone > domain > Create record > Select the type of the record > Value: Ip address or dns name.
+
+```bash
+
+sudo yum install -y bind-utils
+
+dig < domain name >
+
+
+```
+
+## Script for the aws region
+
+```bash
+
+#!/bin/bash
+
+# Update the system
+yum update -y
+
+# Install Apache HTTP server
+yum install -y httpd
+
+# Start and enable the Apache service
+systemctl start httpd
+systemctl enable httpd
+
+# Check if IMDSv1 is enabled
+CHECK_IMDSV1_ENABLED=$(curl -s -o /dev/null -w "%{http_code}" http://169.254.169.254/latest/meta-data/)
+
+if [[ "$CHECK_IMDSV1_ENABLED" -eq 200 ]]; then
+    # IMDSv1 is enabled, retrieve availability zone
+    EC2_AVAIL_ZONE="$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)"
+else
+    # IMDSv1 is not enabled, use IMDSv2 to obtain a token and retrieve availability zone
+    EC2_AVAIL_ZONE="$(TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600") && curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)"
+fi
+
+# Create an HTML file with instance information
+echo "<h1>Hello world from $(hostname -f) in AZ $EC2_AVAIL_ZONE </h1>" > /var/www/html/index.html
+
+```
