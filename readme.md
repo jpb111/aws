@@ -16,9 +16,11 @@ aws iam list-users --profile <your_profile_name>
 
 ## SSH EC2 Public
 
+```bash
 ssh-add -K <MyKeyPair>
 ssh -A ec2-user@<IpAddressPublicEC2> Public EC2
 ssh ec2-user@<IpAddressPrivateEC2> Private EC2
+```
 
 ### I am Roles for AWS Services
 
